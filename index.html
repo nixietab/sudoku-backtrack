@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Brute Force Solver (Real-time with Colors)</title>
+    <style>
+        body {
+            background-color: black;
+            color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin: 20px auto;
+        }
+
+        td {
+            width: 40px;
+            height: 40px;
+            text-align: center;
+            font-size: 20px;
+            border: 1px solid #444;
+            background-color: #2c2c2c;
+            color: #f0f0f0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        td.filled {
+            color: #ffffff;
+        }
+
+        td.solved {
+            background-color: #357a38;
+            color: limegreen;
+        }
+
+        td.backtrack {
+            background-color: #b71c1c;
+            color: #ffffff;
+        }
+
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #357a38;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2e6b2f;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sudoku Brute Force</h1>
+    <table id="sudokuGrid"></table>
+    <button onclick="startBruteForce()">Start Endless Solving</button>
+
+    <script>
+        let solving = false;
+        const delay = 50; // delay between updates (milliseconds)
+
+        function generateSudoku() {
+            const grid = Array.from({ length: 9 }, () => Array(9).fill(0));
+            fillDiagonalSubgrids(grid);
+            solveSudoku(grid);
+            removeNumbers(grid);
+            return grid;
+        }
+
+        function fillDiagonalSubgrids(grid) {
+            for (let i = 0; i < 9; i += 3) {
+                fillSubgrid(grid, i, i);
+            }
+        }
+
+        function fillSubgrid(grid, row, col) {
+            const numbers = shuffle(Array.from({ length: 9 }, (_, i) => i + 1));
+            let idx = 0;
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    grid[row + i][col + j] = numbers[idx++];
+                }
+            }
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function isValid(grid, row, col, num) {
+            return !usedInRow(grid, row, num) &&
+                   !usedInCol(grid, col, num) &&
+                   !usedInBox(grid, row - row % 3, col - col % 3, num);
+        }
+
+        function usedInRow(grid, row, num) {
+            return grid[row].includes(num);
+        }
+
+        function usedInCol(grid, col, num) {
+            return grid.some(row => row[col] === num);
+        }
+
+        function usedInBox(grid, boxStartRow, boxStartCol, num) {
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    if (grid[boxStartRow + row][boxStartCol + col] === num) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function solveSudoku(grid) {
+            const emptyCell = findEmptyLocation(grid);
+            if (!emptyCell) return true;
+
+            const [row, col] = emptyCell;
+
+            for (let num = 1; num <= 9; num++) {
+                if (isValid(grid, row, col, num)) {
+                    grid[row][col] = num;
+                    if (solveSudoku(grid)) return true;
+                    grid[row][col] = 0;
+                }
+            }
+            return false;
+        }
+
+        function findEmptyLocation(grid) {
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    if (grid[row][col] === 0) {
+                        return [row, col];
+                    }
+                }
+            }
+            return null;
+        }
+
+        function removeNumbers(grid) {
+            const difficulty = 40; // Number of cells to clear (adjust for difficulty)
+            let count = difficulty;
+            while (count > 0) {
+                const cellId = Math.floor(Math.random() * 81);
+                const row = Math.floor(cellId / 9);
+                const col = cellId % 9;
+                if (grid[row][col] !== 0) {
+                    grid[row][col] = 0;
+                    count--;
+                }
+            }
+        }
+
+        function displaySudoku(grid) {
+            const table = document.getElementById('sudokuGrid');
+            table.innerHTML = ''; // Clear previous grid
+            for (let row = 0; row < 9; row++) {
+                const tr = document.createElement('tr');
+                for (let col = 0; col < 9; col++) {
+                    const td = document.createElement('td');
+                    td.textContent = grid[row][col] !== 0 ? grid[row][col] : '';
+                    if (grid[row][col] !== 0) {
+                        td.classList.add('filled');
+                    }
+                    td.dataset.row = row;
+                    td.dataset.col = col;
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+        }
+
+        function updateCell(row, col, value, className) {
+            const td = document.querySelector(`td[data-row='${row}'][data-col='${col}']`);
+            td.textContent = value !== 0 ? value : '';
+            td.className = className;
+        }
+
+        // Asynchronous brute force solver with delay for visualization
+        async function bruteForceSolver(grid) {
+            const emptyCell = findEmptyLocation(grid);
+            if (!emptyCell) return true; // Solved
+
+            const [row, col] = emptyCell;
+
+            for (let num = 1; num <= 9; num++) {
+                if (!solving) return false; // Stop if interrupted
+                if (isValid(grid, row, col, num)) {
+                    grid[row][col] = num;
+                    updateCell(row, col, num, 'solved');
+                    await new Promise(resolve => setTimeout(resolve, delay)); // Delay to show progress
+
+                    if (await bruteForceSolver(grid)) return true;
+
+                    // Backtrack
+                    grid[row][col] = 0;
+                    updateCell(row, col, '', 'backtrack');
+                    await new Promise(resolve => setTimeout(resolve, delay)); // Delay to show backtracking
+                }
+            }
+
+            return false;
+        }
+
+        async function startBruteForce() {
+            solving = true;
+            while (solving) {
+                const sudoku = generateSudoku();
+                displaySudoku(sudoku);
+
+                const solved = await bruteForceSolver(sudoku);
+                if (solved) {
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before generating the next puzzle
+                } else {
+                    solving = false;
+                    alert("No solution exists!");
+                }
+            }
+        }
+
+        const sudoku = generateSudoku();
+        displaySudoku(sudoku);
+    </script>
+</body>
+</html>
